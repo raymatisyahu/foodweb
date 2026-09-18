@@ -399,6 +399,14 @@ function show(id){
 }
 function go(id){ show(id); }
 function shuffle(list){ return [...list].sort(()=>Math.random()-0.5); }
+function randomizeOptions(item){
+  const choices=item.a.map((text,index)=>({text,index}));
+  for(let i=choices.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [choices[i],choices[j]]=[choices[j],choices[i]];
+  }
+  return {...item,a:choices.map(choice=>choice.text),correct:choices.findIndex(choice=>choice.index===item.correct)};
+}
 
 $('loginBtn').addEventListener('click',()=>{
   const name=$('studentName').value.trim();
@@ -502,12 +510,14 @@ function startGame(){
     available=[...questionBank];
   }
   const selected=shuffle(available).slice(0,20);
-  questions=selected.length ? selected : [...questionBank].slice(0,20);
+  const selectedIndexes=selected.map(item=>questionBank.indexOf(item));
+  // Randomize answer choices for every question and update the correct-answer index.
+  // This prevents the correct answer from following a predictable pattern.
+  questions=selected.length ? selected.map(randomizeOptions) : [...questionBank].slice(0,20).map(randomizeOptions);
   if(!questions.length){
     alert('Question bank is empty.');
     return;
   }
-  const selectedIndexes=selected.map(item=>questionBank.indexOf(item));
   localStorage.setItem(usedKey,JSON.stringify([...used,...selectedIndexes]));
     renderQuestion();
 }
