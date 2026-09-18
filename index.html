@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food Web Guardians</title>
+<style>
+:root{
+  --bg:#101827;--panel:#1b2940;--panel2:#243754;--accent:#67e8f9;
+  --accent2:#a7f3d0;--text:#f8fafc;--muted:#cbd5e1;--danger:#fb7185;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Arial,Helvetica,sans-serif;
+  background:radial-gradient(circle at top,#243b5a,#101827 65%);
+  color:var(--text);min-height:100vh;
+}
+button,input,select{font:inherit}
+button{cursor:pointer;touch-action:manipulation}
+.app{min-height:100vh;padding:18px;display:flex;align-items:center;justify-content:center}
+.screen{z-index:1;
+  display:none;width:min(1100px,100%);min-height:650px;max-height:calc(100vh - 36px);
+  background:rgba(16,24,39,.96);border:1px solid #45617e;border-radius:24px;
+  box-shadow:0 20px 70px #0008;overflow:hidden;position:relative;
+}
+.screen.active{display:flex;flex-direction:column}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:18px 24px;background:#172338;border-bottom:1px solid #405675
+}
+.brand{font-weight:800;letter-spacing:.8px;color:var(--accent)}
+.badge{background:#334155;padding:7px 11px;border-radius:999px;font-size:.8rem}
+.content{padding:26px;overflow:auto;flex:1}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px}
+h1{font-size:clamp(2rem,5vw,4rem);margin:10px 0;color:var(--accent)}
+h2{margin:0 0 10px;color:var(--accent2)}
+p{line-height:1.55;color:var(--muted)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.card,.portal,.hero,.question-card{
+  background:linear-gradient(145deg,#263b58,#18263a);
+  border:1px solid #48627e;border-radius:18px;padding:20px;
+}
+.card,.portal,.hero{transition:.2s}
+.card:hover,.portal:hover,.hero:hover{transform:translateY(-3px);border-color:var(--accent)}
+.portal,.hero{text-align:center;min-height:180px}
+.section-portal h3{color:var(--accent2);font-size:1.15rem}
+.section-portal p{font-size:.9rem}
+.icon{font-size:4rem;display:block;margin-bottom:10px}
+.primary,.secondary,.danger{
+  border:0;border-radius:12px;padding:13px 18px;font-weight:700;
+  color:#07111f;background:var(--accent);min-width:145px
+}
+.secondary{background:#cbd5e1}
+.danger{background:var(--danger);color:#fff}
+.actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:22px}
+.form{width:min(440px,100%);display:grid;gap:12px}
+label{text-align:left;font-weight:700;color:var(--muted)}
+input,select{
+  width:100%;padding:13px;border-radius:10px;border:1px solid #526b86;
+  background:#0f1b2d;color:#fff
+}
+.small{font-size:.88rem;color:var(--muted)}
+.reading{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.info{background:#122136;border-left:4px solid var(--accent2);padding:16px;border-radius:12px}
+.ready-box{text-align:center;background:#122136;border-radius:18px;padding:28px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{background:#263b58;border-radius:10px;padding:10px 14px}
+.question-card{margin-top:14px}
+.question-number{color:var(--accent2);font-weight:700}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.answer{
+  text-align:left;background:#17283f;color:#fff;border:1px solid #58708c;
+  padding:15px;border-radius:12px
+}
+.answer:hover{border-color:var(--accent);background:#27415e}
+.answer:disabled{opacity:.65;cursor:not-allowed}
+.feedback{min-height:30px;margin-top:14px;font-weight:700}
+.correct{color:#86efac}.wrong{color:#fda4af}
+.progress{height:10px;background:#334155;border-radius:99px;overflow:hidden;margin:14px 0}
+.progress span{display:block;height:100%;background:var(--accent);width:0}
+.result-learner{font-size:clamp(2rem,5vw,4rem);font-weight:900;color:#fff;line-height:1.1;margin:12px 0 18px;overflow-wrap:anywhere;text-shadow:0 3px 12px rgba(0,0,0,.35)}
+.result-score{font-size:clamp(5rem,12vw,9rem);font-weight:900;color:var(--accent);line-height:1;margin:12px 0 22px;text-shadow:0 4px 16px rgba(0,0,0,.35)}
+.hidden{display:none!important}
+@media(max-width:700px){
+  .screen{z-index:1;min-height:calc(100vh - 36px);max-height:none}
+  .content{padding:18px}.reading{grid-template-columns:1fr}
+  .answers{grid-template-columns:1fr}
+  .topbar{padding:14px 16px}.actions{justify-content:stretch}
+  .actions button{flex:1}
+}
+
+/* QUEST ADVENTURE VISUAL UPGRADE */
+body::before, body::after{
+  content:"";position:fixed;inset:auto;pointer-events:none;z-index:0;
+  border-radius:50%;filter:blur(2px);opacity:.55;
+}
+body::before{
+  width:260px;height:260px;top:7%;left:3%;
+  background:radial-gradient(circle,#22d3ee55,transparent 68%);
+  animation:floatGlow 8s ease-in-out infinite;
+}
+body::after{
+  width:340px;height:340px;right:0;bottom:0;
+  background:radial-gradient(circle,#a78bfa44,transparent 68%);
+  animation:floatGlow 10s ease-in-out infinite reverse;
+}
+@keyframes floatGlow{
+  0%,100%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(20px,-18px) scale(1.12)}
+}
+.screen{z-index:1;
+  background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(22,40,60,.96));
+}
+.screen.active{animation:screenEnter .35s ease}
+@keyframes screenEnter{
+  from{opacity:0;transform:scale(.98) translateY(8px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+.portal,.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(145deg,#304d70,#18263a 70%);
+}
+.portal::before,.hero::before{
+  content:"✦  ✧  ✦";position:absolute;top:8px;right:12px;
+  color:#67e8f988;font-size:1rem;letter-spacing:5px;
+}
+.portal::after,.hero::after{
+  content:"";position:absolute;width:90px;height:90px;right:-35px;bottom:-35px;
+  border:2px solid #67e8f955;border-radius:50%;
+  box-shadow:0 0 0 12px #67e8f522,0 0 0 24px #67e8f511;
+}
+.portal:hover,.hero:hover{
+  transform:translateY(-6px) scale(1.02);
+  box-shadow:0 12px 28px #0008,0 0 20px #67e8f933;
+}
+.icon{filter:drop-shadow(0 0 12px #67e8f944);animation:iconFloat 4s ease-in-out infinite}
+@keyframes iconFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+.primary{
+  background:linear-gradient(135deg,#67e8f9,#a7f3d0);
+  box-shadow:0 5px 0 #0e7490;
+}
+.primary:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.section-portal h3{letter-spacing:.4px}
+.quest-banner{
+  margin:0 0 20px;padding:16px 18px;border-radius:16px;
+  background:linear-gradient(90deg,#164e63,#312e81);
+  border:1px solid #67e8f955;text-align:center;
+  box-shadow:inset 0 0 24px #67e8f511;
+}
+.quest-banner strong{color:#a7f3d0}
+
+
+.diagram{
+  margin-top:12px;padding:13px 10px;border-radius:12px;
+  background:#0b1728;border:1px solid #4b6684;
+  color:#a7f3d0;text-align:center;font-weight:700;
+  line-height:1.9;font-size:1rem;
+}
+.web-diagram{font-size:.92rem;line-height:2.1}
+
+
+.reward-pop{
+  min-height:42px;margin-top:10px;padding:10px 14px;border-radius:12px;
+  background:linear-gradient(90deg,#3b2f68,#164e63);
+  border:1px solid #facc15;color:#fde68a;font-weight:800;
+  text-align:center;opacity:0;transform:scale(.95);
+}
+.reward-pop.show{animation:rewardBurst .7s ease forwards}
+@keyframes rewardBurst{
+  0%{opacity:0;transform:scale(.9)}
+  45%{opacity:1;transform:scale(1.04)}
+  100%{opacity:1;transform:scale(1)}
+}
+
+
+/* ARENA FIX */
+#gameScreen .content{display:flex;flex-direction:column;justify-content:flex-start}
+#gameScreen .question-card{width:100%;max-width:900px;margin:14px auto 0}
+#gameScreen #questionText{font-size:clamp(1.15rem,2.5vw,1.8rem);line-height:1.4}
+#gameScreen .answers{width:100%}
+#gameScreen .answer{min-height:58px}
+#gameScreen .stats{justify-content:center}
+#gameScreen .progress{width:100%;max-width:900px;margin:14px auto}
+
+
+/* CLICKABILITY FIX */
+#answers{position:relative;z-index:20;display:grid;gap:14px}
+#answers .answer{
+  position:relative;z-index:21;display:block;width:100%;
+  pointer-events:auto!important;cursor:pointer;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+#answers .answer:disabled{pointer-events:none}
+.question-card,.content{position:relative}
+
+
+/* UNIVERSAL DASHBOARD CLICK FIX */
+button,[data-next],[data-back]{pointer-events:auto!important;position:relative;z-index:30}
+.portal,.hero{cursor:pointer}
+button:focus-visible{outline:3px solid #facc15;outline-offset:3px}
+
+.hidden{display:none!important}
+#nextQuestionBtn{margin:18px auto 0;display:block}
+
+/* ACTION ARENA */
+.battle-stage{display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:clamp(4px,1.5vw,14px);width:100%;max-width:760px;min-height:150px;box-sizing:border-box;margin:10px auto 16px;padding:10px clamp(6px,2vw,18px);border:1px solid #48627e;border-radius:18px;background:linear-gradient(180deg,#13243a,#0b1728);overflow:hidden}
+.battle-unit{text-align:center;min-width:0;flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center}.battle-sprite{font-size:clamp(2.6rem,6vw,4.8rem);line-height:1;display:inline-block;max-width:100%;transform-origin:center bottom;filter:drop-shadow(0 0 12px #67e8f955)}
+.battle-sprite.enemy{filter:drop-shadow(0 0 12px #fb718555)}.battle-name{font-size:clamp(.68rem,1.6vw,.95rem);font-weight:800;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.battle-hp{height:8px;width:min(120px,90%);background:#334155;border-radius:99px;overflow:hidden;margin:6px auto}.battle-hp span{display:block;width:100%;height:100%;background:#86efac}.vs{flex:0 0 auto;font-size:clamp(.75rem,2vw,1.25rem);font-weight:900;color:#facc15;white-space:nowrap}
+.battle-stage.attack .battle-sprite.hero{animation:heroAttack .75s ease}.battle-stage.attack .battle-sprite.enemy{animation:enemyHit .75s ease}.battle-stage.attack:after{content:"⚡💥⚡";position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:2rem;animation:impactFlash .75s ease;pointer-events:none}.battle-stage{position:relative}.battle-stage.enemy-attack .battle-sprite.enemy{animation:enemyAttack .75s ease}.battle-stage.enemy-attack .battle-sprite.hero{animation:heroHit .75s ease}
+@keyframes heroAttack{0%,100%{transform:translateX(0) rotate(0)}45%{transform:translateX(32px) rotate(-12deg);filter:drop-shadow(0 0 24px #67e8f9)}}
+@keyframes enemyHit{0%,100%{transform:translateX(0)}35%,65%{transform:translateX(7px) rotate(8deg)}50%{opacity:.55}}
+@keyframes enemyAttack{0%,100%{transform:translateX(0)}45%{transform:translateX(-32px) rotate(12deg);filter:drop-shadow(0 0 24px #fb7185)}}
+@keyframes heroHit{0%,100%{transform:translateX(0)}35%,65%{transform:translateX(-7px) rotate(-8deg)}50%{opacity:.55}}
+@keyframes impactFlash{0%{opacity:0;scale:.3}45%{opacity:1;scale:1.3}100%{opacity:0;scale:.7}}
+@media(max-width:600px){.battle-stage{gap:3px;padding:8px 4px;min-height:118px}.battle-sprite{font-size:clamp(2.2rem,13vw,3.6rem)}.battle-name{font-size:.62rem}.battle-hp{width:clamp(52px,24vw,88px)}.vs{font-size:.7rem}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<section class="screen active" id="loginScreen">
+  <div class="content center">
+    <div class="icon">🌿🦉</div>
+    <h1>Food Web Guardians</h1>
+    <p>Enter your name to begin your science adventure.</p>
+    <div class="form">
+      <label for="studentName">Learner Name</label>
+      <input id="studentName" placeholder="Enter your name" autocomplete="name">
+      <button type="button" class="primary" id="loginBtn">🚀 Enter Quest →</button>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="portalScreen">
+  <div class="topbar"><div class="brand">QUEST REALMS</div><span class="badge" id="playerBadge"></span></div>
+  <div class="content">
+    <div class="quest-banner">🌟 <strong>Choose your Section Quest Realm!</strong><br>
+      Select your section portal to begin the Food Web Guardian adventure.</div>
+    <div class="card-grid">
+      <button type="button" class="portal section-portal" data-next="heroScreen" data-section="6 - SADALAO">
+        <span class="icon">🌳</span><h3>6 - SADALAO</h3><p>Enter the Sadalao Quest Realm.</p>
+      </button>
+      <button type="button" class="portal section-portal" data-next="heroScreen" data-section="6 - CORRALES">
+        <span class="icon">🦉</span><h3>6 - CORRALES</h3><p>Enter the Corrales Quest Realm.</p>
+      </button>
+      <button type="button" class="portal section-portal" data-next="heroScreen" data-section="6 - MAYO">
+        <span class="icon">🌿</span><h3>6 - MAYO</h3><p>Enter the Mayo Quest Realm.</p>
+      </button>
+    </div>
+    <div class="actions"><button type="button" class="secondary" id="logoutBtn">← Back to Login</button></div>
+  </div>
+</section>
+
+<section class="screen" id="heroScreen">
+  <div class="topbar"><div class="brand">HERO HUB</div><span class="badge">Choose a Guardian</span></div>
+  <div class="content">
+    <h2>Select Your Guardian</h2><p>Click one character to continue.</p>
+    <div class="card-grid">
+      <button type="button" class="hero" data-hero="Forest Knight"><span class="icon">🛡️</span><h3>Forest Knight</h3><p>Protects producers and consumers.</p></button>
+      <button type="button" class="hero" data-hero="Nature Wizard"><span class="icon">🧙</span><h3>Nature Wizard</h3><p>Understands energy transfer.</p></button>
+      <button type="button" class="hero" data-hero="Eco Fairy"><span class="icon">🧚</span><h3>Eco Fairy</h3><p>Restores ecosystem balance.</p></button>
+    </div>
+    <div class="actions"><button type="button" class="secondary" data-back="portalScreen">← Back</button></div>
+  </div>
+</section>
+
+<section class="screen" id="readingScreen">
+  <div class="topbar">
+    <div class="brand">KNOWLEDGE TRAIL</div>
+    <span class="badge">Quick Reading</span>
+  </div>
+  <div class="content">
+    <div class="quest-banner">
+      🌿 <strong>Study the clues before conquering the quest!</strong><br>
+      Read the short guide and follow the arrows in the diagrams.
+    </div>
+
+    <h2>Food Web Roles: Producers, Consumers, Scavengers, and Decomposers</h2>
+
+    <div class="reading">
+      <div class="info">
+        <h3>1. Producers</h3>
+        <p>Plants make their own food using sunlight. They are the beginning of most food chains.</p>
+        <div class="diagram">☀️ Sun → 🌱 Plant</div>
+      </div>
+
+      <div class="info">
+        <h3>2. Consumers</h3>
+        <p>Consumers get energy by eating plants or other animals.</p>
+        <div class="diagram">🌱 Grass → 🐇 Rabbit → 🦅 Eagle</div>
+        <p class="small">The arrow shows the direction of energy transfer.</p>
+      </div>
+
+      <div class="info">
+        <h3>3. Decomposers</h3>
+        <p>Decomposers, such as mushrooms, break down dead organisms and return nutrients to the soil.</p>
+        <div class="diagram">🍂 Dead matter → 🍄 Mushroom → 🌱 Plant</div>
+      </div>
+
+      <div class="info">
+        <h3>4. Food Web</h3>
+        <p>A food web is made of connected food chains.</p>
+        <div class="diagram web-diagram">
+          🌱 Plant → 🐇 Rabbit → 🦅 Eagle<br>
+          🌱 Plant → 🐛 Caterpillar → 🐦 Bird<br>
+          🐛 Caterpillar → 🐸 Frog → 🦅 Eagle
+        </div>
+      </div>
+    </div>
+
+    <div class="info" style="margin-top:18px">
+      <h3>Remember ⭐</h3>
+      <p><b>Producer</b> = makes food • <b>Consumer</b> = eats organisms • <b>Decomposer</b> = breaks down dead matter</p>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="secondary" data-back="portalScreen">← Back to Quest Realms</button>
+      <button type="button" class="primary" data-next="launchScreen">⚔️ Conquer the Mission Gate →</button>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="launchScreen">
+  <div class="topbar"><div class="brand">LAUNCH QUEST</div><span class="badge">Your Mission Starts Here</span></div>
+  <div class="content center">
+    <div class="ready-box">
+      <div class="icon">🚀</div><h2 id="readyTitle">⚔️ Launch Your Quest, Guardian!</h2>
+      <p>You will answer 20 objective multiple-choice questions focused on the roles of producers, consumers, scavengers, and decomposers in a food web.</p>
+      <p><b>Scoring:</b> 1 point for every correct answer. Earn 1 Nature Star per correct answer.</p>
+      <p><b>Quest Rule:</b> The mission ends after 10 wrong answers.</p>
+      <button type="button" class="primary" id="startBtn">🚀 ENTER MISSION ARENA →</button>
+    </div>
+    <div class="actions"><button type="button" class="secondary" data-back="readingScreen">← Back to Knowledge Trail</button></div>
+  </div>
+</section>
+
+<section class="screen" id="gameScreen">
+  <div class="topbar"><div class="brand">MISSION ARENA</div><span class="badge" id="heroBadge"></span></div>
+  <div class="content">
+    <div class="stats">
+      <div class="stat">Question: <b id="qCount">1/20</b></div>
+      <div class="stat">Score: <b id="score">0</b></div>
+      <div class="stat">🌟 Rewards: <b id="rewardCount">0</b></div>
+      <div class="stat">❌ Mistakes: <b id="wrongCount">0/10</b></div>
+      
+    </div>
+    <div class="progress"><span id="progressBar"></span></div>
+    <div class="battle-stage" id="battleStage" aria-label="Character action arena">
+      <div class="battle-unit"><div class="battle-sprite hero" id="heroSprite">🛡️</div><div class="battle-name" id="arenaHeroName">Guardian</div><div class="battle-hp"><span></span></div></div>
+      <div class="vs">⚔️ VS ⚔️</div>
+      <div class="battle-unit"><div class="battle-sprite enemy" id="enemySprite">👾</div><div class="battle-name">Food Web Beast</div><div class="battle-hp"><span id="enemyHp"></span></div></div>
+    </div>
+    <div class="question-card">
+      <div class="question-number" id="questionNumber"></div>
+      <h2 id="questionText"></h2>
+      <div class="answers" id="answers"></div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <button type="button" class="primary hidden" id="nextQuestionBtn">➡️ Proceed to Next Question</button>
+      <div class="reward-pop" id="rewardPop" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="resultScreen">
+  <div class="content center">
+    <div class="icon">🏆</div><h1>Quest Complete!</h1>
+    <p id="resultMessage"></p>
+    <div class="result-learner" id="resultLearner">Learner Name</div>
+    <div class="result-score" id="resultScore">0/10</div>
+    <p id="resultDetails"></p>
+    <div class="actions">
+      <button type="button" class="secondary" id="retryBtn">Try Again</button>
+      <button type="button" class="primary" id="homeBtn">Return to Portal →</button>
+    </div>
+  </div>
+</section>
+
+</div>
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+const screens = [...document.querySelectorAll('.screen')];
+let player = {name:'', section:'', hero:''};
+let current = 0;
+let score = 0;
+let questions = [];
+let rewards = 0;
+let wrongAnswers = 0;
+let answerLocked = false;
+
+const questionBank = [{"q":"What is the main role of a producer in a food web?","a":["To make its own food","To hunt every animal","To decompose rocks","To eat only dead animals"],"correct":0,"why":"Producers make their own food, usually through photosynthesis."},{"q":"Which is an example of a producer?","a":["Grass","Hawk","Frog","Mushroom"],"correct":0,"why":"Grass makes its own food using sunlight."},{"q":"Why are producers important in a food web?","a":["They provide energy-rich food for consumers","They eat all consumers","They remove sunlight","They stop decomposition"],"correct":0,"why":"Producers introduce energy into the food web."},{"q":"Which organism is a primary consumer?","a":["Grass","Rabbit","Eagle","Mushroom"],"correct":1,"why":"A rabbit eats plants, so it is a primary consumer."},{"q":"What is the role of a consumer?","a":["To get energy by eating other organisms","To make sunlight","To produce soil","To break down all rocks"],"correct":0,"why":"Consumers obtain energy by eating producers or other consumers."},{"q":"Which animal is a herbivore and consumer?","a":["Cow","Lion","Eagle","Mushroom"],"correct":0,"why":"A cow eats plants and is a consumer."},{"q":"Which animal may be both predator and prey in a food web?","a":["Frog","Grass","Sunlight","Mushroom only"],"correct":0,"why":"A frog may eat insects and may be eaten by a snake or bird."},{"q":"What is a predator?","a":["An organism that hunts and eats another organism","An organism that makes its own food","A nonliving factor","A type of soil"],"correct":0,"why":"A predator obtains food by hunting or eating prey."},{"q":"What is prey?","a":["An organism that is eaten by another organism","An organism that makes sunlight","A decomposer only","A nonliving part of an ecosystem"],"correct":0,"why":"Prey is an organism eaten by a predator."},{"q":"What is the role of a scavenger?","a":["To eat dead animals or remains","To make food from sunlight","To eat only living plants","To stop nutrient cycling"],"correct":0,"why":"Scavengers feed on dead animals or animal remains."},{"q":"Which is an example of a scavenger?","a":["Vulture","Grass","Algae","Mushroom"],"correct":0,"why":"Vultures commonly feed on dead animals."},{"q":"How do scavengers help a food web?","a":["They help remove dead animal remains","They produce sunlight","They prevent all consumers from eating","They turn plants into rocks"],"correct":0,"why":"Scavengers help clean the environment and make remains available for further breakdown."},{"q":"Which statement best describes a decomposer?","a":["It breaks down dead organisms and wastes","It hunts only large animals","It makes its own sunlight","It eats only fresh grass"],"correct":0,"why":"Decomposers break down dead matter and wastes."},{"q":"Which organism is a decomposer?","a":["Fungus","Rabbit","Hawk","Grass"],"correct":0,"why":"Fungi are important decomposers."},{"q":"What do decomposers return to the environment?","a":["Nutrients","Plastic","Sunlight","Noise"],"correct":0,"why":"Decomposers release nutrients that can be reused by producers."},{"q":"Why are decomposers important in a food web?","a":["They recycle nutrients","They remove all producers","They stop energy transfer","They eat only living predators"],"correct":0,"why":"Decomposers recycle nutrients from dead matter and wastes."},{"q":"What may happen if decomposers disappear?","a":["Dead matter and wastes may accumulate","All sunlight disappears","All animals become producers","Plants no longer need nutrients"],"correct":0,"why":"Without decomposers, dead material would break down much more slowly."},{"q":"Which pair contains a scavenger and a decomposer?","a":["Vulture and fungus","Grass and rabbit","Hawk and snake","Sunlight and water"],"correct":0,"why":"A vulture scavenges, while fungus decomposes dead matter."},{"q":"How are scavengers and decomposers different?","a":["Scavengers eat remains, while decomposers chemically break down dead matter","Scavengers make food, while decomposers hunt","Both are nonliving","Both only eat sunlight"],"correct":0,"why":"Scavengers consume remains; decomposers break them down into simpler substances."},{"q":"Which group includes only consumers?","a":["Rabbit, frog, and eagle","Grass, algae, and tree","Fungus, bacteria, and mushroom","Sunlight, water, and soil"],"correct":0,"why":"Rabbits, frogs, and eagles get energy by consuming organisms."},{"q":"Which group includes only producers?","a":["Grass, algae, and trees","Rabbit, cow, and deer","Fungus, bacteria, and mold","Vulture, eagle, and snake"],"correct":0,"why":"Grass, algae, and trees can make their own food."},{"q":"Which group includes decomposers?","a":["Fungi and many bacteria","Rabbits and deer","Eagles and snakes","Grass and algae"],"correct":0,"why":"Fungi and many bacteria break down dead material."},{"q":"Which statement about consumers is correct?","a":["Some consumers eat plants, animals, or both","All consumers make their own food","Consumers are always decomposers","Consumers are nonliving"],"correct":0,"why":"Consumers may be herbivores, carnivores, or omnivores."},{"q":"A rabbit eats grass. What roles are shown?","a":["Grass is a producer and rabbit is a consumer","Grass is a decomposer and rabbit is a producer","Both are scavengers","Both are nonliving"],"correct":0,"why":"Grass makes food; the rabbit gets energy by eating grass."},{"q":"A vulture eats a dead deer. What role does the vulture show?","a":["Scavenger","Producer","Primary producer","Nonliving factor"],"correct":0,"why":"A vulture feeds on dead animal remains."},{"q":"Fungi grow on a fallen log and break it down. What role do fungi show?","a":["Decomposer","Predator only","Producer only","Scavenger only"],"correct":0,"why":"Fungi break down dead organic matter."},{"q":"What can happen when producers decrease in a food web?","a":["Consumers may have less food","Decomposers become sunlight","All scavengers become producers","Predators stop needing energy"],"correct":0,"why":"Many consumers depend directly or indirectly on producers."},{"q":"What can happen when scavengers remove dead animals?","a":["Remains are cleared and can be further broken down","All producers disappear","Food webs stop immediately","Nutrients become plastic"],"correct":0,"why":"Scavengers help process dead animal remains."},{"q":"What can happen when decomposers release nutrients into soil?","a":["Producers can reuse the nutrients","Consumers stop eating","Sunlight becomes food for animals","Scavengers become nonliving"],"correct":0,"why":"Plants and other producers can use recycled nutrients."},{"q":"Why do food webs include several roles instead of only one?","a":["Different organisms transfer energy and recycle nutrients in connected ways","Only producers are important","All organisms perform exactly the same job","Food webs contain no relationships"],"correct":0,"why":"Producers, consumers, scavengers, and decomposers support connected ecosystem processes."},{"q":"Which statement summarizes the roles in a food web?","a":["Producers make food, consumers eat organisms, scavengers eat remains, and decomposers break down dead matter","All organisms make food","Scavengers produce sunlight and decomposers hunt","Consumers and producers are nonliving"],"correct":0,"why":"Each group has a distinct role that supports energy flow and nutrient cycling."}];
+
+function show(id){
+  screens.forEach(s=>s.classList.toggle('active',s.id===id));
+}
+function go(id){ show(id); }
+function shuffle(list){ return [...list].sort(()=>Math.random()-0.5); }
+
+$('loginBtn').addEventListener('click',()=>{
+  const name=$('studentName').value.trim();
+  if(!name){ alert('Please enter your name.'); return; }
+  player.name=name;
+  $('playerBadge').textContent=name;
+  go('portalScreen');
+});
+
+$('logoutBtn').addEventListener('click',()=>{
+  player={name:'',hero:''};
+  $('studentName').value='';
+  go('loginScreen');
+});
+
+document.addEventListener('click', event=>{
+  const portal=event.target.closest('.section-portal');
+  if(portal){
+    event.preventDefault();
+    if(!player.name){ go('loginScreen'); return; }
+    player.section=portal.dataset.section || '';
+    $('playerBadge').textContent=`${player.name} • ${player.section}`;
+    go('heroScreen');
+    return;
+  }
+
+  const nextButton=event.target.closest('[data-next]');
+  if(nextButton){
+    event.preventDefault();
+    const target=nextButton.dataset.next;
+    if(target) go(target);
+    return;
+  }
+
+  const backButton=event.target.closest('[data-back]');
+  if(backButton){
+    event.preventDefault();
+    const target=backButton.dataset.back;
+    if(target) go(target);
+    return;
+  }
+
+  const hero=event.target.closest('.hero');
+  if(hero){
+    event.preventDefault();
+    player.hero=hero.dataset.hero||'Food Web Guardian';
+    $('readyTitle').textContent=`⚔️ Ready to Conquer, ${player.name}?`;
+    $('heroBadge').textContent=`${player.hero} • ${player.section}`; $('arenaHeroName').textContent=player.hero; $('heroSprite').textContent=player.hero==='Nature Wizard'?'🧙':player.hero==='Eco Fairy'?'🧚':'🛡️';
+    go('readingScreen');
+  }
+});
+
+$('answers').addEventListener('click',event=>{
+  const btn=event.target.closest('button.answer');
+  if(!btn || btn.disabled) return;
+  answerQuestion(Number(btn.dataset.answerIndex));
+});
+
+$('nextQuestionBtn').addEventListener('click',()=>{
+  if(!answerLocked) return;
+  current++;
+  renderQuestion();
+});
+
+$('startBtn').addEventListener('click',function(event){
+  event.preventDefault();
+  // Open the arena first, then load the first question.
+  show('gameScreen');
+  try{
+    startGame();
+  }catch(error){
+    console.error(error);
+    alert('Please refresh the page and try again.');
+  }
+});
+$('retryBtn').addEventListener('click',startGame);
+$('homeBtn').addEventListener('click',()=>go('portalScreen'));
+
+function launchMissionArena(){
+  try{
+    startGame();
+    go('gameScreen');
+  }catch(error){
+    console.error('Launch error:', error);
+    alert('The Mission Arena could not open. Please refresh the page and try again.');
+  }
+}
+
+function startGame(){
+  score=0;current=0;rewards=0;wrongAnswers=0;answerLocked=false;rewards=0;wrongAnswers=0;answerLocked=false;
+  $('rewardCount').textContent='0'; $('wrongCount').textContent='0/10';
+  const usedKey='foodWebUsedQuestions';
+  let used=[];
+  try{
+    const stored=JSON.parse(localStorage.getItem(usedKey)||'[]');
+    if(Array.isArray(stored)) used=stored;
+  }catch(error){ used=[]; }
+  let available=questionBank.filter((_,index)=>!used.includes(index));
+  if(available.length<20){
+    used=[];
+    available=[...questionBank];
+  }
+  const selected=shuffle(available).slice(0,20);
+  questions=selected.length ? selected : [...questionBank].slice(0,20);
+  if(!questions.length){
+    alert('Question bank is empty.');
+    return;
+  }
+  const selectedIndexes=selected.map(item=>questionBank.indexOf(item));
+  localStorage.setItem(usedKey,JSON.stringify([...used,...selectedIndexes]));
+    renderQuestion();
+}
+function renderQuestion(){
+  const item=questions[current];
+  $('qCount').textContent=`${current+1}/${questions.length}`;
+  $('score').textContent=score;
+  $('progressBar').style.width=`${(current/questions.length)*100}%`;
+  $('questionNumber').textContent=`Challenge ${current+1}`;
+  $('questionText').textContent=item.q;
+  $('feedback').textContent='';
+  $('feedback').className='feedback';
+  $('rewardPop').textContent='';
+  $('rewardPop').classList.remove('show');
+  $('nextQuestionBtn').classList.add('hidden');
+  answerLocked=false;
+  const box=$('answers');box.innerHTML='';
+  item.a.forEach((answer,index)=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='answer';
+    btn.dataset.answerIndex=index;
+    btn.textContent=`${String.fromCharCode(65+index)}. ${answer}`;
+    box.appendChild(btn);
+  });
+}
+function animateBattle(correct){
+  const stage=$('battleStage');
+  const enemy=$('enemySprite');
+  const hero=$('heroSprite');
+  const hp=$('enemyHp');
+  stage.classList.remove('attack','enemy-attack');
+  void stage.offsetWidth;
+  stage.classList.add(correct?'attack':'enemy-attack');
+  if(correct){ hp.style.width='0%'; enemy.textContent='💥'; }
+  else { hero.textContent='😵‍💫'; enemy.textContent='👹'; }
+  setTimeout(()=>{ stage.classList.remove('attack','enemy-attack'); if(correct){enemy.textContent='👾';hp.style.width='100%';} else {enemy.textContent='👾';} hero.textContent=player.hero==='Nature Wizard'?'🧙':player.hero==='Eco Fairy'?'🧚':'🛡️'; },900);
+}
+
+function answerQuestion(index){
+  if(answerLocked) return;
+  answerLocked=true;
+
+  const item=questions[current];
+  const buttons=[...$('answers').children];
+  buttons.forEach(b=>b.disabled=true);
+
+  const feedback=$('feedback');
+  const rewardPop=$('rewardPop');
+  rewardPop.classList.remove('show');
+
+  if(index===item.correct){
+    animateBattle(true);
+    score++;
+    rewards++;
+    feedback.textContent='✓ Correct! '+item.why;
+    feedback.className='feedback correct';
+    rewardPop.textContent='🌟 +1 Nature Star! Great work, Guardian! 🌟';
+    $('rewardCount').textContent=rewards;
+  }else{
+    animateBattle(false);
+    wrongAnswers++;
+    feedback.textContent='✗ Not quite. '+item.why;
+    feedback.className='feedback wrong';
+    rewardPop.textContent=wrongAnswers>=10
+      ?'⚠️ You reached the maximum of 10 wrong answers.'
+      :'💡 Keep learning! You can earn a Nature Star on the next question.';
+    $('wrongCount').textContent=`${wrongAnswers}/10`;
+  }
+
+  void rewardPop.offsetWidth;
+  rewardPop.classList.add('show');
+  $('score').textContent=score;
+  $('progressBar').style.width=`${((current+1)/questions.length)*100}%`;
+
+  if(wrongAnswers>=10 || current>=questions.length-1){
+    $('nextQuestionBtn').classList.add('hidden');
+    setTimeout(()=>finishGame(),1200);
+  }else{
+    $('nextQuestionBtn').classList.remove('hidden');
+  }
+}
+function finishGame(){
+  $('resultLearner').textContent=player.name || 'Learner';
+  $('resultScore').textContent=`${score}/${questions.length}`;
+  $('resultMessage').textContent=wrongAnswers>=10
+    ?'Your quest ended after reaching the maximum of 10 wrong answers. Review the reading and try again!'
+    :score===questions.length
+      ?'Amazing! You mastered the food web mission!'
+      :'Good effort! Review the lesson and try again to improve your score.';
+  $('resultDetails').textContent=`Learner: ${player.name} • Guardian: ${player.hero||'Not selected'} • 🌟 Nature Stars Earned: ${rewards} • ❌ Wrong Answers: ${wrongAnswers}/10`;
+  go('resultScreen');
+}
+</script>
+</body>
+</html>
